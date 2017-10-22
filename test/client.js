@@ -15,35 +15,35 @@ var tingodb = require('tingodb')({
 
 var log = require('../lib/log');
 
-var Bitcore = require('bitcore-lib');
-var BitcorePayPro = require('bitcore-payment-protocol');
+var Litecore = require('litecore-lib');
+var BitcorePayPro = require('litecore-payment-protocol');
 
-var BWS = require('bitcore-wallet-service');
+var LWS = require('litecore-wallet-service');
 
 var Common = require('../lib/common');
 var Constants = Common.Constants;
 var Utils = Common.Utils;
 var Client = require('../lib');
-var ExpressApp = BWS.ExpressApp;
-var Storage = BWS.Storage;
+var ExpressApp = LWS.ExpressApp;
+var Storage = LWS.Storage;
 var TestData = require('./testdata');
 var ImportData = require('./legacyImportData.js');
 var Errors = require('../lib/errors');
 
 var helpers = {};
 
-helpers.toSatoshi = function(btc) {
-  if (_.isArray(btc)) {
-    return _.map(btc, helpers.toSatoshi);
+helpers.toSatoshi = function(ltc) {
+  if (_.isArray(ltc)) {
+    return _.map(ltc, helpers.toSatoshi);
   } else {
-    return parseFloat((btc * 1e8).toPrecision(12));
+    return parseFloat((ltc * 1e8).toPrecision(12));
   }
 };
 
 helpers.newClient = function(app) {
   $.checkArgument(app);
   return new Client({
-    baseUrl: '/bws/api',
+    baseUrl: '/lws/api',
     request: request(app),
   });
 };
@@ -82,16 +82,16 @@ helpers.generateUtxos = function(scriptType, publicKeyRing, path, requiredSignat
     var scriptPubKey;
     switch (scriptType) {
       case Constants.SCRIPT_TYPES.P2SH:
-        scriptPubKey = Bitcore.Script.buildMultisigOut(address.publicKeys, requiredSignatures).toScriptHashOut();
+        scriptPubKey = Litecore.Script.buildMultisigOut(address.publicKeys, requiredSignatures).toScriptHashOut();
         break;
       case Constants.SCRIPT_TYPES.P2PKH:
-        scriptPubKey = Bitcore.Script.buildPublicKeyHashOut(address.address);
+        scriptPubKey = Litecore.Script.buildPublicKeyHashOut(address.address);
         break;
     }
     should.exist(scriptPubKey);
 
     var obj = {
-      txid: Bitcore.crypto.Hash.sha256(new Buffer(i)).toString('hex'),
+      txid: Litecore.crypto.Hash.sha256(new Buffer(i)).toString('hex'),
       vout: 100,
       satoshis: helpers.toSatoshi(amount),
       scriptPubKey: scriptPubKey.toBuffer().toString('hex'),
@@ -194,15 +194,15 @@ blockchainExplorerMock.setUtxo = function(address, amount, m, confirmations) {
   var scriptPubKey;
   switch (address.type) {
     case Constants.SCRIPT_TYPES.P2SH:
-      scriptPubKey = address.publicKeys ? Bitcore.Script.buildMultisigOut(address.publicKeys, m).toScriptHashOut() : '';
+      scriptPubKey = address.publicKeys ? Litecore.Script.buildMultisigOut(address.publicKeys, m).toScriptHashOut() : '';
       break;
     case Constants.SCRIPT_TYPES.P2PKH:
-      scriptPubKey = Bitcore.Script.buildPublicKeyHashOut(address.address);
+      scriptPubKey = Litecore.Script.buildPublicKeyHashOut(address.address);
       break;
   }
   should.exist(scriptPubKey);
   blockchainExplorerMock.utxos.push({
-    txid: Bitcore.crypto.Hash.sha256(new Buffer(Math.random() * 100000)).toString('hex'),
+    txid: Litecore.crypto.Hash.sha256(new Buffer(Math.random() * 100000)).toString('hex'),
     vout: Math.floor((Math.random() * 10) + 1),
     amount: amount,
     address: address.address,
@@ -213,7 +213,7 @@ blockchainExplorerMock.setUtxo = function(address, amount, m, confirmations) {
 
 blockchainExplorerMock.broadcast = function(raw, cb) {
   blockchainExplorerMock.lastBroadcasted = raw;
-  return cb(null, (new Bitcore.Transaction(raw)).id);
+  return cb(null, (new Litecore.Transaction(raw)).id);
 };
 
 blockchainExplorerMock.setHistory = function(txs) {
@@ -327,9 +327,9 @@ describe('client API', function() {
   });
 
   describe('Client Internals', function() {
-    it('should expose bitcore', function() {
-      should.exist(Client.Bitcore);
-      should.exist(Client.Bitcore.HDPublicKey);
+    it('should expose litecore', function() {
+      should.exist(Client.Litecore);
+      should.exist(Client.Litecore.HDPublicKey);
     });
   });
 
@@ -475,9 +475,9 @@ describe('client API', function() {
   describe('Build & sign txs', function() {
     var masterPrivateKey = 'tprv8ZgxMBicQKsPd8U9aBBJ5J2v8XMwKwZvf8qcu2gLK5FRrsrPeSgkEcNHqKx4zwv6cP536m68q2UD7wVM24zdSCpaJRmpowaeJTeVMXL5v5k';
     var derivedPrivateKey = {
-      'BIP44': new Bitcore.HDPrivateKey(masterPrivateKey).deriveChild("m/44'/1'/0'").toString(),
-      'BIP45': new Bitcore.HDPrivateKey(masterPrivateKey).deriveChild("m/45'").toString(),
-      'BIP48': new Bitcore.HDPrivateKey(masterPrivateKey).deriveChild("m/48'/1'/0'").toString(),
+      'BIP44': new Litecore.HDPrivateKey(masterPrivateKey).deriveChild("m/44'/1'/0'").toString(),
+      'BIP45': new Litecore.HDPrivateKey(masterPrivateKey).deriveChild("m/45'").toString(),
+      'BIP48': new Litecore.HDPrivateKey(masterPrivateKey).deriveChild("m/48'/1'/0'").toString(),
     };
 
     describe('#buildTx', function() {
@@ -486,7 +486,7 @@ describe('client API', function() {
         var changeAddress = 'msj42CCGruhRsFrGATiUuh25dtxYtnpbTx';
 
         var publicKeyRing = [{
-          xPubKey: new Bitcore.HDPublicKey(derivedPrivateKey['BIP44']),
+          xPubKey: new Litecore.HDPublicKey(derivedPrivateKey['BIP44']),
         }];
 
         var utxos = helpers.generateUtxos('P2PKH', publicKeyRing, 'm/1/0', 1, [1000, 2000]);
@@ -509,7 +509,7 @@ describe('client API', function() {
         _.isString(t).should.be.true;
         /^[\da-f]+$/.test(t).should.be.true;
 
-        var t2 = new Bitcore.Transaction(t);
+        var t2 = new Litecore.Transaction(t);
         t2.inputs.length.should.equal(2);
         t2.outputs.length.should.equal(2);
         t2.outputs[0].satoshis.should.equal(1200);
@@ -519,7 +519,7 @@ describe('client API', function() {
         var changeAddress = 'msj42CCGruhRsFrGATiUuh25dtxYtnpbTx';
 
         var publicKeyRing = [{
-          xPubKey: new Bitcore.HDPublicKey(derivedPrivateKey['BIP44']),
+          xPubKey: new Litecore.HDPublicKey(derivedPrivateKey['BIP44']),
         }];
 
         var utxos = helpers.generateUtxos('P2PKH', publicKeyRing, 'm/1/0', 1, [1000, 2000]);
@@ -552,7 +552,7 @@ describe('client API', function() {
         var changeAddress = 'msj42CCGruhRsFrGATiUuh25dtxYtnpbTx';
 
         var publicKeyRing = [{
-          xPubKey: new Bitcore.HDPublicKey(derivedPrivateKey['BIP48']),
+          xPubKey: new Litecore.HDPublicKey(derivedPrivateKey['BIP48']),
         }];
 
         var utxos = helpers.generateUtxos('P2PKH', publicKeyRing, 'm/1/0', 1, [1000, 2000]);
@@ -585,7 +585,7 @@ describe('client API', function() {
         var changeAddress = 'msj42CCGruhRsFrGATiUuh25dtxYtnpbTx';
 
         var publicKeyRing = [{
-          xPubKey: new Bitcore.HDPublicKey(derivedPrivateKey['BIP44']),
+          xPubKey: new Litecore.HDPublicKey(derivedPrivateKey['BIP44']),
         }];
 
         var utxos = helpers.generateUtxos('P2PKH', publicKeyRing, 'm/1/0', 1, [1, 2]);
@@ -628,7 +628,7 @@ describe('client API', function() {
         var changeAddress = 'msj42CCGruhRsFrGATiUuh25dtxYtnpbTx';
 
         var publicKeyRing = [{
-          xPubKey: new Bitcore.HDPublicKey(derivedPrivateKey['BIP44']),
+          xPubKey: new Litecore.HDPublicKey(derivedPrivateKey['BIP44']),
         }];
 
         var utxos = helpers.generateUtxos('P2PKH', publicKeyRing, 'm/1/0', 1, [1000, 2000]);
@@ -663,7 +663,7 @@ describe('client API', function() {
         var changeAddress = 'msj42CCGruhRsFrGATiUuh25dtxYtnpbTx';
 
         var publicKeyRing = [{
-          xPubKey: new Bitcore.HDPublicKey(derivedPrivateKey['BIP44']),
+          xPubKey: new Litecore.HDPublicKey(derivedPrivateKey['BIP44']),
         }];
 
         var utxos = helpers.generateUtxos('P2PKH', publicKeyRing, 'm/1/0', 1, [0.001]);
@@ -702,7 +702,7 @@ describe('client API', function() {
         t.outputs[1].satoshis.should.equal(txp.outputs[1].amount);
         t.outputs[2].script.toHex().should.equal(txp.outputs[2].script);
         t.outputs[2].satoshis.should.equal(txp.outputs[2].amount);
-        var changeScript = Bitcore.Script.fromAddress(txp.changeAddress.address).toHex();
+        var changeScript = Litecore.Script.fromAddress(txp.changeAddress.address).toHex();
         t.outputs[3].script.toHex().should.equal(changeScript);
       });
       it('should fail if provided output has no either toAddress or script', function() {
@@ -710,7 +710,7 @@ describe('client API', function() {
         var changeAddress = 'msj42CCGruhRsFrGATiUuh25dtxYtnpbTx';
 
         var publicKeyRing = [{
-          xPubKey: new Bitcore.HDPublicKey(derivedPrivateKey['BIP44']),
+          xPubKey: new Litecore.HDPublicKey(derivedPrivateKey['BIP44']),
         }];
 
         var utxos = helpers.generateUtxos('P2PKH', publicKeyRing, 'm/1/0', 1, [0.001]);
@@ -759,7 +759,7 @@ describe('client API', function() {
         var changeAddress = 'msj42CCGruhRsFrGATiUuh25dtxYtnpbTx';
 
         var publicKeyRing = [{
-          xPubKey: new Bitcore.HDPublicKey(derivedPrivateKey['BIP44']),
+          xPubKey: new Litecore.HDPublicKey(derivedPrivateKey['BIP44']),
         }];
 
         var utxos = helpers.generateUtxos('P2PKH', publicKeyRing, 'm/1/0', 1, [1000, 2000]);
@@ -798,7 +798,7 @@ describe('client API', function() {
         var changeAddress = 'msj42CCGruhRsFrGATiUuh25dtxYtnpbTx';
 
         var publicKeyRing = [{
-          xPubKey: new Bitcore.HDPublicKey(derivedPrivateKey['BIP45']),
+          xPubKey: new Litecore.HDPublicKey(derivedPrivateKey['BIP45']),
         }];
 
         var utxos = helpers.generateUtxos('P2SH', publicKeyRing, 'm/2147483647/0/0', 1, [1000, 2000]);
@@ -823,7 +823,7 @@ describe('client API', function() {
         var changeAddress = 'msj42CCGruhRsFrGATiUuh25dtxYtnpbTx';
 
         var publicKeyRing = [{
-          xPubKey: new Bitcore.HDPublicKey(derivedPrivateKey['BIP44']),
+          xPubKey: new Litecore.HDPublicKey(derivedPrivateKey['BIP44']),
         }];
 
         var utxos = helpers.generateUtxos('P2PKH', publicKeyRing, 'm/1/0', 1, [1000, 2000]);
@@ -848,7 +848,7 @@ describe('client API', function() {
         var changeAddress = 'msj42CCGruhRsFrGATiUuh25dtxYtnpbTx';
 
         var publicKeyRing = [{
-          xPubKey: new Bitcore.HDPublicKey(derivedPrivateKey['BIP44']),
+          xPubKey: new Litecore.HDPublicKey(derivedPrivateKey['BIP44']),
         }];
 
         var utxos = helpers.generateUtxos('P2PKH', publicKeyRing, 'm/1/0', 1, [1000, 2000]);
@@ -880,7 +880,7 @@ describe('client API', function() {
         var changeAddress = 'msj42CCGruhRsFrGATiUuh25dtxYtnpbTx';
 
         var publicKeyRing = [{
-          xPubKey: new Bitcore.HDPublicKey(derivedPrivateKey['BIP44']),
+          xPubKey: new Litecore.HDPublicKey(derivedPrivateKey['BIP44']),
         }];
 
         var utxos = helpers.generateUtxos('P2PKH', publicKeyRing, 'm/1/0', 1, [0.001]);
@@ -914,7 +914,7 @@ describe('client API', function() {
         var changeAddress = 'msj42CCGruhRsFrGATiUuh25dtxYtnpbTx';
 
         var publicKeyRing = [{
-          xPubKey: new Bitcore.HDPublicKey(derivedPrivateKey['BIP44']),
+          xPubKey: new Litecore.HDPublicKey(derivedPrivateKey['BIP44']),
         }];
 
         var utxos = helpers.generateUtxos('P2PKH', publicKeyRing, 'm/1/0', 1, [1000, 2000]);
@@ -950,7 +950,7 @@ describe('client API', function() {
       var i = 0;
       while (i++ < 100) {
         var walletId = Uuid.v4();
-        var walletPrivKey = new Bitcore.PrivateKey();
+        var walletPrivKey = new Litecore.PrivateKey();
         var network = i % 2 == 0 ? 'testnet' : 'livenet';
         var secret = Client._buildSecret(walletId, walletPrivKey, network);
         var result = Client.parseSecret(secret);
@@ -967,7 +967,7 @@ describe('client API', function() {
 
     it('should create secret and parse secret from string ', function() {
       var walletId = Uuid.v4();
-      var walletPrivKey = new Bitcore.PrivateKey();
+      var walletPrivKey = new Litecore.PrivateKey();
       var network = 'testnet';
       var secret = Client._buildSecret(walletId, walletPrivKey.toString(), network);
       var result = Client.parseSecret(secret);
@@ -1068,7 +1068,7 @@ describe('client API', function() {
     });
     it('should be able to access wallet name in non-encrypted wallet (legacy)', function(done) {
       clients[0].seedFromRandomWithMnemonic();
-      var wpk = new Bitcore.PrivateKey();
+      var wpk = new Litecore.PrivateKey();
       var args = {
         name: 'mywallet',
         m: 1,
@@ -1275,7 +1275,7 @@ describe('client API', function() {
       helpers.createAndJoinWallet(clients, 2, 3, function() {
         helpers.tamperResponse([clients[0], clients[1]], 'get', '/v1/wallets/', {}, function(status) {
           // Replace caller's pubkey
-          status.wallet.copayers[1].xPubKey = (new Bitcore.HDPrivateKey()).publicKey;
+          status.wallet.copayers[1].xPubKey = (new Litecore.HDPrivateKey()).publicKey;
           // Add a correct signature
           status.wallet.copayers[1].xPubKeySignature = Utils.signMessage(
             status.wallet.copayers[1].xPubKey.toString(),
@@ -1372,7 +1372,7 @@ describe('client API', function() {
       });
     });
 
-    it('should set walletPrivKey from BWS', function(done) {
+    it('should set walletPrivKey from LWS', function(done) {
       clients[0].createWallet('mywallet', 'creator', 1, 1, {
         network: 'testnet'
       }, function(err) {
@@ -1565,17 +1565,17 @@ describe('client API', function() {
   });
 
   describe('Version', function() {
-    it('should get version of bws', function(done) {
+    it('should get version of lws', function(done) {
       clients[0].credentials = {};
       clients[0].getVersion(function(err, version) {
         if (err) {
-          // if bws is older version without getVersion support
+          // if lws is older version without getVersion support
           err.should.be.an.instanceOf(Errors.NOT_FOUND);
         } else {
-          // if bws is up-to-date
+          // if lws is up-to-date
           should.exist(version);
           should.exist(version.serviceVersion);
-          version.serviceVersion.should.contain('bws-');
+          version.serviceVersion.should.contain('lws-');
         }
         done();
       });
@@ -2686,8 +2686,8 @@ describe('client API', function() {
                 amount.low.should.equal(404500);
                 amount.high.should.equal(0);
                 var s = refund_to.get('script');
-                s = new Bitcore.Script(s.buffer.slice(s.offset, s.limit));
-                var addr = new Bitcore.Address.fromScript(s, 'testnet');
+                s = new Litecore.Script(s.buffer.slice(s.offset, s.limit));
+                var addr = new Litecore.Address.fromScript(s, 'testnet');
                 addr.toString().should.equal(changeAddress);
                 done();
               });
@@ -2715,7 +2715,7 @@ describe('client API', function() {
                 var pay = new BitcorePayPro();
                 var p = pay.makePayment(data);
                 var rawTx = p.get('transactions')[0].toBuffer();
-                var tx = new Bitcore.Transaction(rawTx);
+                var tx = new Litecore.Transaction(rawTx);
                 var script = tx.inputs[0].script;
                 script.isScriptHashIn().should.equal(true);
                 done();
@@ -2780,8 +2780,8 @@ describe('client API', function() {
               amount.low.should.equal(404500);
               amount.high.should.equal(0);
               var s = refund_to.get('script');
-              s = new Bitcore.Script(s.buffer.slice(s.offset, s.limit));
-              var addr = new Bitcore.Address.fromScript(s, 'testnet');
+              s = new Litecore.Script(s.buffer.slice(s.offset, s.limit));
+              var addr = new Litecore.Address.fromScript(s, 'testnet');
               addr.toString().should.equal(changeAddress);
               done();
             });
@@ -2805,7 +2805,7 @@ describe('client API', function() {
               var pay = new BitcorePayPro();
               var p = pay.makePayment(data);
               var rawTx = p.get('transactions')[0].toBuffer();
-              var tx = new Bitcore.Transaction(rawTx);
+              var tx = new Litecore.Transaction(rawTx);
               var script = tx.inputs[0].script;
               script.isPublicKeyHashIn().should.equal(true);
               done();
@@ -2954,7 +2954,7 @@ describe('client API', function() {
               clients[0].broadcastTxProposal(txp, function(err, txp) {
                 should.not.exist(err);
                 txp.status.should.equal('broadcasted');
-                txp.txid.should.equal((new Bitcore.Transaction(blockchainExplorerMock.lastBroadcasted)).id);
+                txp.txid.should.equal((new Litecore.Transaction(blockchainExplorerMock.lastBroadcasted)).id);
                 done();
               });
             } else {
@@ -3019,7 +3019,7 @@ describe('client API', function() {
               clients[0].broadcastTxProposal(txp, function(err, txp) {
                 should.not.exist(err);
                 txp.status.should.equal('broadcasted');
-                txp.txid.should.equal((new Bitcore.Transaction(blockchainExplorerMock.lastBroadcasted)).id);
+                txp.txid.should.equal((new Litecore.Transaction(blockchainExplorerMock.lastBroadcasted)).id);
                 txp.outputs[0].message.should.equal('output 0');
                 txp.message.should.equal('hello');
                 done();
@@ -3092,7 +3092,7 @@ describe('client API', function() {
                   txp.status.should.equal('accepted');
                   clients[1].broadcastTxProposal(txp, function(err, txp) {
                     txp.status.should.equal('broadcasted');
-                    txp.txid.should.equal((new Bitcore.Transaction(blockchainExplorerMock.lastBroadcasted)).id);
+                    txp.txid.should.equal((new Litecore.Transaction(blockchainExplorerMock.lastBroadcasted)).id);
                     done();
                   });
                 });
@@ -3155,7 +3155,7 @@ describe('client API', function() {
                   txp.status.should.equal('accepted');
                   clients[2].broadcastTxProposal(txp, function(err, txp) {
                     txp.status.should.equal('broadcasted');
-                    txp.txid.should.equal((new Bitcore.Transaction(blockchainExplorerMock.lastBroadcasted)).id);
+                    txp.txid.should.equal((new Litecore.Transaction(blockchainExplorerMock.lastBroadcasted)).id);
                     done();
                   });
                 });
@@ -3657,7 +3657,7 @@ describe('client API', function() {
           should.exist(err);
         });
 
-        it('should export & import with mnemonics + BWS', function(done) {
+        it('should export & import with mnemonics + LWS', function(done) {
           var c = clients[0].credentials;
           var walletId = c.walletId;
           var walletName = c.walletName;
@@ -3679,7 +3679,7 @@ describe('client API', function() {
           });
         });
 
-        it('should export & import with xprivkey + BWS', function(done) {
+        it('should export & import with xprivkey + LWS', function(done) {
           var c = clients[0].credentials;
           var walletId = c.walletId;
           var walletName = c.walletName;
@@ -3728,7 +3728,7 @@ describe('client API', function() {
             done();
           });
         });
-        it('should export & import with mnemonics + BWS', function(done) {
+        it('should export & import with mnemonics + LWS', function(done) {
           clients[0].seedFromMnemonic('pink net pet stove boy receive task nephew book spawn pull regret', {
             network: 'livenet',
             nonCompliantDerivation: true,
@@ -3748,7 +3748,7 @@ describe('client API', function() {
           });
         });
 
-        it('should check BWS once if specific derivation is not problematic', function(done) {
+        it('should check LWS once if specific derivation is not problematic', function(done) {
           clients[0].seedFromMnemonic('relax about label gentle insect cross summer helmet come price elephant seek', {
             network: 'livenet',
           });
@@ -3764,7 +3764,7 @@ describe('client API', function() {
             done();
           });
         });
-        it('should export & import with xprivkey + BWS', function(done) {
+        it('should export & import with xprivkey + LWS', function(done) {
           clients[0].seedFromMnemonic('relax about label gentle insect cross summer helmet come price elephant seek', {
             network: 'livenet',
           });
@@ -3842,7 +3842,7 @@ describe('client API', function() {
         });
       });
       // Generated with https://dcpos.github.io/bip39/
-      it('should fail to import from words if not at BWS', function(done) {
+      it('should fail to import from words if not at LWS', function(done) {
         var exported = 'bounce tonight little spy earn void nominee ankle walk ten type update';
         importedClient = helpers.newClient(app);
         importedClient.importFromMnemonic(exported, {
@@ -3854,7 +3854,7 @@ describe('client API', function() {
           done();
         });
       });
-      it('should fail to import from words if not at BWS, with passphrase', function(done) {
+      it('should fail to import from words if not at LWS, with passphrase', function(done) {
         var exported = 'bounce tonight little spy earn void nominee ankle walk ten type update';
         importedClient = helpers.newClient(app);
         importedClient.importFromMnemonic(exported, {
@@ -4618,7 +4618,7 @@ describe('client API', function() {
         c2.createWalletFromOldCopay(t2.username, t2.password, t2.ls[w], function(err) {
           should.not.exist(err);
 
-          // New BWS server...
+          // New LWS server...
           var storage = new Storage({
             db: helpers.newDb(),
           });
@@ -4837,7 +4837,7 @@ describe('client API', function() {
             var c = clients[0].credentials;
 
             // Ggenerate a new priv key, not registered
-            var k = new Bitcore.PrivateKey();
+            var k = new Litecore.PrivateKey();
             c.requestPrivKey = k.toString();
             c.requestPubKey = k.toPublicKey().toString();
             done();
@@ -4872,7 +4872,7 @@ describe('client API', function() {
           url.should.contain('/copayers');
           body.should.not.contain('pepe');
 
-          var k = new Bitcore.PrivateKey(key);
+          var k = new Litecore.PrivateKey(key);
           var c = clients[0].credentials;
           c.requestPrivKey = k.toString();
           c.requestPubKey = k.toPublicKey().toString();
@@ -4909,7 +4909,7 @@ describe('client API', function() {
         clients[0].addAccess({
           generateNewKey: true
         }, function(err, x, key) {
-          var k = new Bitcore.PrivateKey(key);
+          var k = new Litecore.PrivateKey(key);
           var c = clients[0].credentials;
           c.requestPrivKey = k.toString();
           c.requestPubKey = k.toPublicKey().toString();
@@ -5028,7 +5028,7 @@ describe('client API', function() {
           tx.outputs.length.should.equal(1);
           var output = tx.outputs[0];
           output.satoshis.should.equal(123 * 1e8 - 10000);
-          var script = new Bitcore.Script.buildPublicKeyHashOut(Bitcore.Address.fromString('1GG3JQikGC7wxstyavUBDoCJ66bWLLENZC'));
+          var script = new Litecore.Script.buildPublicKeyHashOut(Litecore.Address.fromString('1GG3JQikGC7wxstyavUBDoCJ66bWLLENZC'));
           output.script.toString('hex').should.equal(script.toString('hex'));
           done();
         });
@@ -5038,7 +5038,7 @@ describe('client API', function() {
     it('should handle tx serialization error when building tx', function(done) {
       var sandbox = sinon.sandbox.create();
 
-      var se = sandbox.stub(Bitcore.Transaction.prototype, 'serialize', function() {
+      var se = sandbox.stub(Litecore.Transaction.prototype, 'serialize', function() {
         throw new Error('this is an error');
       });
 
@@ -5087,15 +5087,15 @@ describe('client API', function() {
         }],
         expected: '0.01',
       }, {
-        args: [1, 'btc'],
+        args: [1, 'ltc'],
         expected: '0.00',
       }, {
-        args: [1, 'btc', {
+        args: [1, 'ltc', {
           fullPrecision: true
         }],
         expected: '0.00000001',
       }, {
-        args: [1234567899999, 'btc', {
+        args: [1234567899999, 'ltc', {
           thousandsSeparator: ' ',
           decimalSeparator: ','
         }],

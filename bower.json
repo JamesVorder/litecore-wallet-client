@@ -1,17 +1,17 @@
 {
-  "name": "bitcore-wallet-client",
+  "name": "litecore-wallet-client",
   "main": "index.js",
   "version": "2.1.1",
-  "homepage": "https://github.com/bitpay/bitcore-wallet-client",
-  "authors": ["BitPay Inc"],
-  "description": "Client for bitcore-wallet-service",
+  "homepage": "https://github.com/JamesVorder/litecore-wallet-client",
+  "authors": ["nicknack42"],
+  "description": "Client for litecore-wallet-service",
   "keywords": [
-    "bitcoin",
+    "litecoin",
     "copay",
     "multisig",
     "wallet",
     "client",
-    "bitcore"
+    "litecore"
   ],
   "ignore": [
     "**/.*",
