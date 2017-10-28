@@ -32,10 +32,10 @@ var Client = require('litecore-wallet-client');
 
 
 var fs = require('fs');
-var BWS_INSTANCE_URL = 'https://lws.bitpay.com/lws/api'
+var LWS_INSTANCE_URL = 'http://localhost:3232/lws/api'
 
 var client = new Client({
-  baseUrl: BWS_INSTANCE_URL,
+  baseUrl: LWS_INSTANCE_URL,
   verbose: false,
 });
 
@@ -58,7 +58,7 @@ var Client = require('litecore-wallet-client');
 
 
 var fs = require('fs');
-var BWS_INSTANCE_URL = 'https://lws.bitpay.com/lws/api'
+var LWS_INSTANCE_URL = 'https://lws.bitpay.com/lws/api'
 
 var secret = process.argv[2];
 if (!secret) {
@@ -68,7 +68,7 @@ if (!secret) {
 }
 
 var client = new Client({
-  baseUrl: BWS_INSTANCE_URL,
+  baseUrl: LWS_INSTANCE_URL,
   verbose: false,
 });
 
